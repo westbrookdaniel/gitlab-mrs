@@ -29,8 +29,10 @@ import {
   Tag,
   HStack,
   IconButton,
+  useColorMode,
+  extendTheme,
 } from "@chakra-ui/react";
-import { FaExclamationTriangle } from "react-icons/fa";
+import { FaExclamationTriangle, FaMoon, FaSun } from "react-icons/fa";
 import { formatDistance, parseISO } from "date-fns";
 import PipelineStatusIcon from "./PipelineStatusIcon";
 import { IoReload } from "react-icons/io5";
@@ -319,6 +321,7 @@ interface MergeRequestListProps {
 const MergeRequestList: React.FC<MergeRequestListProps> = ({
   mergeRequests,
 }) => {
+  const isLight = useColorMode().colorMode === "light";
   return (
     <List spacing={2}>
       {mergeRequests.map((mergeRequest) => (
@@ -327,7 +330,7 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
           pt={2}
           pb={1}
           borderTop="1px solid"
-          borderColor="gray.200"
+          borderColor={isLight ? "gray.200" : "gray.700"}
         >
           <Flex justify="space-between" align="center">
             <Heading size="sm">
@@ -346,7 +349,9 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
                     />
                   </Tooltip>
                 )}
-                <PipelineStatusIcon status={mergeRequest.headPipeline.status} />
+                <PipelineStatusIcon
+                  status={mergeRequest.headPipeline?.status}
+                />
               </Flex>
               <Text mr={2} fontSize="sm">
                 {mergeRequest.approvalsLeft} Needed
@@ -419,7 +424,10 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
             {mergeRequest.labels.edges.map((edge) => (
               <Tag
                 key={edge.node.id}
-                bg={tinycolor(edge.node.color).setAlpha(0.3).toRgbString()}
+                bg={tinycolor(edge.node.color)
+                  .setAlpha(isLight ? 0.3 : 0.4)
+                  .lighten(isLight ? 0 : 50)
+                  .toRgbString()}
                 color={tinycolor(edge.node.color).darken(80).toRgbString()}
                 size="sm"
               >
@@ -441,6 +449,7 @@ const App = () => {
     pause: !config?.projectId,
     requestPolicy: "cache-and-network",
   });
+  const { colorMode, toggleColorMode } = useColorMode();
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -462,6 +471,12 @@ const App = () => {
             isLoading={stale || fetching}
             icon={<Icon as={IoReload} />}
             aria-label="Refetch"
+            mr={2}
+          />
+          <IconButton
+            onClick={toggleColorMode}
+            aria-label="Toggle color mode"
+            icon={<Icon as={colorMode === "light" ? FaSun : FaMoon} />}
             mr={4}
           />
           <Heading size="lg">Merge Requests</Heading>
@@ -507,9 +522,19 @@ const App = () => {
   );
 };
 
+const theme = extendTheme({
+  semanticTokens: {
+    colors: {
+      "chakra-body-bg": {
+        _dark: "gray.900",
+      },
+    },
+  },
+});
+
 const Root = () => (
   <Provider value={client}>
-    <ChakraProvider>
+    <ChakraProvider theme={theme}>
       <App />
     </ChakraProvider>
   </Provider>
