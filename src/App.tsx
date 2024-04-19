@@ -32,7 +32,12 @@ import {
   useColorMode,
   extendTheme,
 } from "@chakra-ui/react";
-import { FaExclamationTriangle, FaMoon, FaSun } from "react-icons/fa";
+import {
+  FaAsterisk,
+  FaExclamationTriangle,
+  FaMoon,
+  FaSun,
+} from "react-icons/fa";
 import { formatDistance, parseISO } from "date-fns";
 import PipelineStatusIcon from "./PipelineStatusIcon";
 import { IoReload } from "react-icons/io5";
@@ -93,6 +98,7 @@ interface MergeRequestNode {
   author: {
     id: string;
     name: string;
+    username: string;
     webUrl: string;
     avatarUrl: string;
   };
@@ -176,6 +182,7 @@ const getMergeRequestsQuery = (projectPath: string) => `
           author {
             id
             name
+            username
             webUrl
             avatarUrl
           }
@@ -321,6 +328,7 @@ interface MergeRequestListProps {
 const MergeRequestList: React.FC<MergeRequestListProps> = ({
   mergeRequests,
 }) => {
+  const [config] = useConfig();
   const isLight = useColorMode().colorMode === "light";
   return (
     <List spacing={2}>
@@ -331,7 +339,18 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
           pb={1}
           borderTop="1px solid"
           borderColor={isLight ? "gray.200" : "gray.700"}
+          position="relative"
         >
+          {mergeRequest.author.username === config?.currentUser?.username ? (
+            <Icon
+              as={FaAsterisk}
+              color={isLight ? "gray.400" : "gray.600"}
+              left={-8}
+              top={4}
+              position="absolute"
+            />
+          ) : null}
+
           <Flex justify="space-between" align="center">
             <Heading size="sm">
               <Link href={mergeRequest.webUrl} isExternal>
