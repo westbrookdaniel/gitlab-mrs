@@ -262,6 +262,7 @@ const UserConfigModal: React.FC<UserConfigModalProps> = ({
         <ModalHeader>Configuration</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
+          <Text mb={4}>All configuration is stored in local storage</Text>
           <FormControl id="projectId" mb={4}>
             <FormLabel>Project ID</FormLabel>
             <Input
