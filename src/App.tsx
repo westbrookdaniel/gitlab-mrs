@@ -353,9 +353,15 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
                   status={mergeRequest.headPipeline?.status}
                 />
               </Flex>
-              <Text mr={2} fontSize="sm">
-                {mergeRequest.approvalsLeft} Needed
-              </Text>
+              {mergeRequest.approvalsLeft === 0 ? (
+                <Tag mr={2} colorScheme="green" fontSize="sm">
+                  Approved
+                </Tag>
+              ) : (
+                <Text mr={2} fontSize="sm">
+                  {mergeRequest.approvalsLeft} Needed
+                </Text>
+              )}
               {mergeRequest.approvedBy.edges.length === 0 ? null : (
                 <Flex>
                   {mergeRequest.approvedBy.edges.map((edge) => (
