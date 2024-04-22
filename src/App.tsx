@@ -41,6 +41,7 @@ import {
 import { formatDistance, parseISO } from "date-fns";
 import PipelineStatusIcon from "./PipelineStatusIcon";
 import { IoReload } from "react-icons/io5";
+import { create } from "zustand";
 
 interface User {
   username: string;
@@ -51,6 +52,11 @@ interface Config {
   currentUser: User | null;
   projectId: string;
   gitlabToken: string;
+}
+
+interface Store {
+  config: Config | null;
+  setConfig: (config: Config) => void;
 }
 
 interface MergeRequestNode {
@@ -210,16 +216,13 @@ function getStoredConfig(): Config | null {
   return null;
 }
 
-function useConfig() {
-  const [config, setConfig] = useState<Config | null>(getStoredConfig());
-
-  const handleConfigCHange = (user: Config) => {
-    setConfig(user);
-    localStorage.setItem("mr-config", JSON.stringify(user));
-  };
-
-  return [config, handleConfigCHange] as const;
-}
+const useConfig = create<Store>()((set) => ({
+  config: getStoredConfig(),
+  setConfig: (c: Config) => {
+    set({ config: c });
+    localStorage.setItem("mr-config", JSON.stringify(c));
+  },
+}));
 
 interface UserConfigModalProps {
   isOpen: boolean;
@@ -230,7 +233,7 @@ const UserConfigModal: React.FC<UserConfigModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const [config, onConfigChange] = useConfig();
+  const { config, setConfig } = useConfig();
   const [form, setForm] = useState({
     username: config?.currentUser?.username ?? "",
     projectId: config?.projectId ?? "",
@@ -252,7 +255,7 @@ const UserConfigModal: React.FC<UserConfigModalProps> = ({
       console.error(e);
     }
 
-    onConfigChange({
+    setConfig({
       projectId: form.projectId,
       gitlabToken: form.gitlabToken,
       currentUser: {
@@ -271,9 +274,17 @@ const UserConfigModal: React.FC<UserConfigModalProps> = ({
         <ModalHeader>Configuration</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <Text mb={4}>All configuration is stored in local storage</Text>
-          <FormControl id="projectId" mb={4}>
+          <Text mb={8}>
+            All configuration is stored in local storage, and kept on the
+            client. I would recommend giving your API Token limited permissions
+          </Text>
+          <FormControl id="projectId" mb={6}>
             <FormLabel>Project ID</FormLabel>
+            <Text fontSize="sm" mb={4}>
+              This should be the project id (everything after gitlab.com)
+              <br />
+              not the project url
+            </Text>
             <Input
               type="text"
               placeholder="gitlab-org/gitlab-foss"
@@ -284,10 +295,10 @@ const UserConfigModal: React.FC<UserConfigModalProps> = ({
             />
           </FormControl>
 
-          <FormControl id="gitlabToken" mb={4}>
+          <FormControl id="gitlabToken" mb={6}>
             <FormLabel>Gitlab API Token</FormLabel>
             <Input
-              type="text"
+              type="password"
               value={form.gitlabToken}
               onChange={(e) =>
                 setForm((f) => ({ ...f, gitlabToken: e.target.value }))
@@ -295,8 +306,11 @@ const UserConfigModal: React.FC<UserConfigModalProps> = ({
             />
           </FormControl>
 
-          <FormControl id="username" mb={4}>
+          <FormControl id="username" mb={6}>
             <FormLabel>Username</FormLabel>
+            <Text fontSize="sm" mb={4}>
+              Not required but recommended
+            </Text>
             <Input
               type="text"
               placeholder="Enter your username"
@@ -309,11 +323,11 @@ const UserConfigModal: React.FC<UserConfigModalProps> = ({
         </ModalBody>
 
         <ModalFooter>
-          <Button colorScheme="blue" mr={3} type="submit">
-            Save
-          </Button>
-          <Button variant="ghost" onClick={onClose} type="button">
+          <Button variant="ghost" onClick={onClose} type="button" mr={3}>
             Cancel
+          </Button>
+          <Button colorScheme="blue" type="submit">
+            Save
           </Button>
         </ModalFooter>
       </ModalContent>
@@ -328,7 +342,7 @@ interface MergeRequestListProps {
 const MergeRequestList: React.FC<MergeRequestListProps> = ({
   mergeRequests,
 }) => {
-  const [config] = useConfig();
+  const config = useConfig((s) => s.config);
   const isLight = useColorMode().colorMode === "light";
   return (
     <List spacing={2}>
@@ -467,7 +481,7 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
 };
 
 const App = () => {
-  const [config] = useConfig();
+  const config = useConfig((s) => s.config);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [{ data, fetching, stale, error }, refetch] = useQuery<ProjectData>({
     query: getMergeRequestsQuery(config?.projectId ?? ""),
@@ -536,8 +550,11 @@ const App = () => {
         </Center>
       ) : !mergeRequests ? (
         <Center p={8}>
-          <Text>
-            Unable to find project. You may have insufficient permissions
+          <Text mb={3} textAlign="center">
+            Unable to find project. You may have insufficient permissions.
+            <br />
+            Click on the profile in the top right to configure your Project ID,
+            Gitlab API Token, and Username.
           </Text>
         </Center>
       ) : (

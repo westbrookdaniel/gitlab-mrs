@@ -19,7 +19,8 @@
     "react-dom": "^18.2.0",
     "react-icons": "^5.1.0",
     "tinycolor2": "^1.6.0",
-    "urql": "^4.0.7"
+    "urql": "^4.0.7",
+    "zustand": "^4.5.2"
   },
   "devDependencies": {
     "@types/react": "^18.2.14",
