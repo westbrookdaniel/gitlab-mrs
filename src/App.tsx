@@ -274,7 +274,15 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
             ) : null}
 
             <Flex justify="space-between" align="center">
-              <Heading size="sm">
+              <Heading
+                size="sm"
+                overflow="hidden"
+                textOverflow="ellipsis"
+                whiteSpace="nowrap"
+                flex="1 1 auto"
+                w="1px"
+                mr={4}
+              >
                 <Link href={mergeRequest.webUrl} isExternal>
                   {mergeRequest.title}
                 </Link>
