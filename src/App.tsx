@@ -41,99 +41,16 @@ import {
 import { formatDistance, parseISO } from "date-fns";
 import PipelineStatusIcon from "./PipelineStatusIcon";
 import { IoReload } from "react-icons/io5";
-import { create } from "zustand";
 import { refocusExchange } from "@urql/exchange-refocus";
-
-interface User {
-  username: string;
-  avatarUrl?: string;
-}
-
-interface Config {
-  currentUser: User | null;
-  projectId: string;
-  gitlabToken: string;
-}
-
-interface Store {
-  config: Config | null;
-  setConfig: (config: Config) => void;
-}
-
-interface MergeRequestNode {
-  id: string;
-  webUrl: string;
-  title: string;
-  conflicts: boolean;
-  createdAt: string;
-  updatedAt: string;
-  approvalsLeft: number;
-  userNotesCount: number;
-  userDiscussionsCount: number;
-  headPipeline: {
-    status: string;
-  };
-  labels: {
-    edges: {
-      node: {
-        id: string;
-        color: string;
-        title: string;
-      };
-    }[];
-  };
-  assignees: {
-    edges: {
-      node: {
-        id: string;
-        name: string;
-        webUrl: string;
-        avatarUrl: string;
-      };
-    }[];
-  };
-  commenters: {
-    edges: {
-      node: {
-        id: string;
-        name: string;
-        webUrl: string;
-        avatarUrl: string;
-      };
-    }[];
-  };
-  author: {
-    id: string;
-    name: string;
-    username: string;
-    webUrl: string;
-    avatarUrl: string;
-  };
-  approvedBy: {
-    edges: {
-      node: {
-        id: string;
-        name: string;
-        webUrl: string;
-        avatarUrl: string;
-      };
-    }[];
-  };
-}
-
-interface ProjectData {
-  project?: {
-    mergeRequests: {
-      nodes: MergeRequestNode[];
-    };
-  };
-}
+import { Filters } from "./Filters";
+import { useConfig } from "./store";
+import { MergeRequestNode, ProjectData } from "./types";
 
 const client = new Client({
   url: "https://gitlab.com/api/graphql",
   exchanges: [refocusExchange(), cacheExchange, fetchExchange],
   fetchOptions: () => {
-    const token = getStoredConfig()?.gitlabToken;
+    const token = useConfig.getState().config?.gitlabToken;
     return {
       headers: { authorization: token ? `Bearer ${token}` : "" },
     };
@@ -208,22 +125,6 @@ const getMergeRequestsQuery = (projectPath: string) => `
     }
   }
 `;
-
-function getStoredConfig(): Config | null {
-  const storedUser = localStorage.getItem("mr-config");
-  if (storedUser) {
-    return JSON.parse(storedUser);
-  }
-  return null;
-}
-
-const useConfig = create<Store>()((set) => ({
-  config: getStoredConfig(),
-  setConfig: (c: Config) => {
-    set({ config: c });
-    localStorage.setItem("mr-config", JSON.stringify(c));
-  },
-}));
 
 interface UserConfigModalProps {
   isOpen: boolean;
@@ -343,89 +244,116 @@ interface MergeRequestListProps {
 const MergeRequestList: React.FC<MergeRequestListProps> = ({
   mergeRequests,
 }) => {
-  const config = useConfig((s) => s.config);
+  const [config, applyFilters] = useConfig((s) => [s.config, s.applyFilters]);
   const isLight = useColorMode().colorMode === "light";
-  return (
-    <List spacing={2}>
-      {mergeRequests.map((mergeRequest) => (
-        <ListItem
-          key={mergeRequest.id}
-          pt={2}
-          pb={1}
-          borderTop="1px solid"
-          borderColor={isLight ? "gray.200" : "gray.700"}
-          position="relative"
-        >
-          {mergeRequest.author.username === config?.currentUser?.username ? (
-            <Icon
-              as={FaAsterisk}
-              color={isLight ? "gray.400" : "gray.600"}
-              left={-8}
-              top={4}
-              position="absolute"
-            />
-          ) : null}
 
-          <Flex justify="space-between" align="center">
-            <Heading size="sm">
-              <Link href={mergeRequest.webUrl} isExternal>
-                {mergeRequest.title}
-              </Link>
-            </Heading>
-            <Flex align="center">
-              <Flex pt={1}>
-                {mergeRequest.conflicts && (
-                  <Tooltip label="Conflicts detected" shouldWrapChildren>
-                    <Icon
-                      as={FaExclamationTriangle}
-                      color="orange.500"
-                      mr={2}
-                    />
-                  </Tooltip>
-                )}
-                <PipelineStatusIcon
-                  status={mergeRequest.headPipeline?.status}
-                />
-              </Flex>
-              {mergeRequest.approvalsLeft === 0 ? (
-                <Tag mr={2} colorScheme="green" fontSize="sm">
-                  Approved
-                </Tag>
-              ) : (
-                <Text mr={2} fontSize="sm">
-                  {mergeRequest.approvalsLeft} Needed
-                </Text>
-              )}
-              {mergeRequest.approvedBy.edges.length === 0 ? null : (
-                <Flex>
-                  {mergeRequest.approvedBy.edges.map((edge) => (
-                    <Tooltip key={edge.node.id} label={edge.node.name}>
-                      <Link href={edge.node.webUrl} isExternal mr={1}>
-                        <Avatar
-                          size="xs"
-                          name={edge.node.name}
-                          src={"https://gitlab.com" + edge.node.avatarUrl}
-                        />
-                      </Link>
-                    </Tooltip>
-                  ))}
-                </Flex>
-              )}
-            </Flex>
-          </Flex>
-          <HStack alignItems="baseline" spacing={4} mb={2}>
+  const filteredMergeRequests = applyFilters(mergeRequests);
+
+  return (
+    <>
+      <Filters />
+
+      <List spacing={2}>
+        {filteredMergeRequests.map((mergeRequest) => (
+          <ListItem
+            key={mergeRequest.id}
+            pt={1}
+            pb={5}
+            borderBottom="1px solid"
+            borderColor={isLight ? "gray.200" : "gray.700"}
+            position="relative"
+          >
+            {mergeRequest.author.username === config?.currentUser?.username ? (
+              <Icon
+                as={FaAsterisk}
+                color={isLight ? "gray.400" : "gray.600"}
+                left={-8}
+                top={4}
+                position="absolute"
+              />
+            ) : null}
+
             <Flex justify="space-between" align="center">
-              <Text size="sm" fontSize="sm">
-                Created{" "}
-                {formatDistance(parseISO(mergeRequest.createdAt), new Date())}{" "}
-                by{" "}
-                <Link href={mergeRequest.author.webUrl} isExternal>
-                  {mergeRequest.author.name}
+              <Heading size="sm">
+                <Link href={mergeRequest.webUrl} isExternal>
+                  {mergeRequest.title}
                 </Link>
-              </Text>
-              <HStack ml={2}>
+              </Heading>
+              <Flex align="center">
+                <Flex pt={1}>
+                  {mergeRequest.conflicts && (
+                    <Tooltip label="Conflicts detected" shouldWrapChildren>
+                      <Icon
+                        as={FaExclamationTriangle}
+                        color="orange.500"
+                        mr={2}
+                      />
+                    </Tooltip>
+                  )}
+                  <PipelineStatusIcon
+                    status={mergeRequest.headPipeline?.status}
+                  />
+                </Flex>
+                {mergeRequest.approvalsLeft === 0 ? (
+                  <Tag mr={2} colorScheme="green" fontSize="sm">
+                    Approved
+                  </Tag>
+                ) : (
+                  <Text mr={2} fontSize="sm">
+                    {mergeRequest.approvalsLeft} Needed
+                  </Text>
+                )}
+                {mergeRequest.approvedBy.edges.length === 0 ? null : (
+                  <Flex>
+                    {mergeRequest.approvedBy.edges.map((edge) => (
+                      <Tooltip key={edge.node.id} label={edge.node.name}>
+                        <Link href={edge.node.webUrl} isExternal mr={1}>
+                          <Avatar
+                            size="xs"
+                            name={edge.node.name}
+                            src={"https://gitlab.com" + edge.node.avatarUrl}
+                          />
+                        </Link>
+                      </Tooltip>
+                    ))}
+                  </Flex>
+                )}
+              </Flex>
+            </Flex>
+            <HStack alignItems="baseline" spacing={4} mb={2}>
+              <Flex justify="space-between" align="center">
+                <Text size="sm" fontSize="sm">
+                  Created{" "}
+                  {formatDistance(parseISO(mergeRequest.createdAt), new Date())}{" "}
+                  by{" "}
+                  <Link href={mergeRequest.author.webUrl} isExternal>
+                    {mergeRequest.author.name}
+                  </Link>
+                </Text>
+                <HStack ml={2}>
+                  <Flex>
+                    {mergeRequest.assignees.edges.map((edge) => (
+                      <Tooltip key={edge.node.id} label={edge.node.name}>
+                        <Link href={edge.node.webUrl} isExternal mr={1}>
+                          <Avatar
+                            size="xs"
+                            name={edge.node.name}
+                            src={"https://gitlab.com" + edge.node.avatarUrl}
+                          />
+                        </Link>
+                      </Tooltip>
+                    ))}
+                  </Flex>
+                </HStack>
+              </Flex>
+              <Flex justify="flex-start" align="center">
+                <Text mr={2} fontSize="sm">
+                  {mergeRequest.commenters.edges.length === 0
+                    ? ""
+                    : `${mergeRequest.userNotesCount} Comments (${mergeRequest.userDiscussionsCount} Threads) by`}
+                </Text>
                 <Flex>
-                  {mergeRequest.assignees.edges.map((edge) => (
+                  {mergeRequest.commenters.edges.map((edge) => (
                     <Tooltip key={edge.node.id} label={edge.node.name}>
                       <Link href={edge.node.webUrl} isExternal mr={1}>
                         <Avatar
@@ -437,47 +365,27 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
                     </Tooltip>
                   ))}
                 </Flex>
-              </HStack>
-            </Flex>
-            <Flex justify="flex-start" align="center">
-              <Text mr={2} fontSize="sm">
-                {mergeRequest.commenters.edges.length === 0
-                  ? ""
-                  : `${mergeRequest.userNotesCount} Comments (${mergeRequest.userDiscussionsCount} Threads) by`}
-              </Text>
-              <Flex>
-                {mergeRequest.commenters.edges.map((edge) => (
-                  <Tooltip key={edge.node.id} label={edge.node.name}>
-                    <Link href={edge.node.webUrl} isExternal mr={1}>
-                      <Avatar
-                        size="xs"
-                        name={edge.node.name}
-                        src={"https://gitlab.com" + edge.node.avatarUrl}
-                      />
-                    </Link>
-                  </Tooltip>
-                ))}
               </Flex>
-            </Flex>
-          </HStack>
-          <HStack>
-            {mergeRequest.labels.edges.map((edge) => (
-              <Tag
-                key={edge.node.id}
-                bg={tinycolor(edge.node.color)
-                  .setAlpha(isLight ? 0.3 : 0.4)
-                  .lighten(isLight ? 0 : 50)
-                  .toRgbString()}
-                color={tinycolor(edge.node.color).darken(80).toRgbString()}
-                size="sm"
-              >
-                {edge.node.title}
-              </Tag>
-            ))}
-          </HStack>
-        </ListItem>
-      ))}
-    </List>
+            </HStack>
+            <HStack>
+              {mergeRequest.labels.edges.map((edge) => (
+                <Tag
+                  key={edge.node.id}
+                  bg={tinycolor(edge.node.color)
+                    .setAlpha(isLight ? 0.3 : 0.4)
+                    .lighten(isLight ? 0 : 50)
+                    .toRgbString()}
+                  color={tinycolor(edge.node.color).darken(80).toRgbString()}
+                  size="sm"
+                >
+                  {edge.node.title}
+                </Tag>
+              ))}
+            </HStack>
+          </ListItem>
+        ))}
+      </List>
+    </>
   );
 };
 
