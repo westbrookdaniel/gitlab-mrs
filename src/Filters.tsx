@@ -66,7 +66,7 @@ export function Filters() {
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
-        <Button whiteSpace="nowrap" minW="120px">
+        <Button whiteSpace="nowrap" minW="120px" type="submit">
           Add Filter
         </Button>
       </HStack>
