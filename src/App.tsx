@@ -42,6 +42,7 @@ import { formatDistance, parseISO } from "date-fns";
 import PipelineStatusIcon from "./PipelineStatusIcon";
 import { IoReload } from "react-icons/io5";
 import { create } from "zustand";
+import { refocusExchange } from "@urql/exchange-refocus";
 
 interface User {
   username: string;
@@ -130,7 +131,7 @@ interface ProjectData {
 
 const client = new Client({
   url: "https://gitlab.com/api/graphql",
-  exchanges: [cacheExchange, fetchExchange],
+  exchanges: [refocusExchange(), cacheExchange, fetchExchange],
   fetchOptions: () => {
     const token = getStoredConfig()?.gitlabToken;
     return {
