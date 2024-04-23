@@ -386,7 +386,7 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
 };
 
 const App = () => {
-  const config = useConfig((s) => s.config);
+  const [config, applyFilters] = useConfig((s) => [s.config, s.applyFilters]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [{ data, fetching, stale, error }, refetch] = useQuery<ProjectData>({
     query: getMergeRequestsQuery(config?.projectId ?? ""),
@@ -423,7 +423,9 @@ const App = () => {
             icon={<Icon as={colorMode === "light" ? FaSun : FaMoon} />}
             mr={4}
           />
-          <Heading size="lg">Merge Requests</Heading>
+          <Heading size="lg">
+            {applyFilters(mergeRequests ?? []).length} Merge Requests
+          </Heading>
         </Flex>
 
         <Avatar
