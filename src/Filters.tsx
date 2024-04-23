@@ -60,6 +60,7 @@ export function Filters() {
         >
           <option value="includes">Includes</option>
           <option value="matches">Matches</option>
+          <option value="excludes">Excludes</option>
         </Select>
         <Input
           placeholder="Filter..."
@@ -74,8 +75,9 @@ export function Filters() {
         <HStack mb={2}>
           {filters.map((f) => (
             <Tag key={f.id} pr={0}>
-              {f.name} {f.includes ? "includes" : "matches"}{" "}
-              {f.includes ?? f.matches}
+              {f.name}{" "}
+              {f.includes ? "includes" : f.matches ? "matches" : "excludes"}{" "}
+              {f.includes ?? f.matches ?? f.excludes}
               <IconButton
                 onClick={() => removeFilter(f.id)}
                 icon={<Icon as={MdClear} />}

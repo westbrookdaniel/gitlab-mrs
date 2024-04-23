@@ -18,6 +18,7 @@ interface Filter {
   field: string;
   includes?: string;
   matches?: string;
+  excludes?: string;
 }
 
 export interface Store {
@@ -57,7 +58,9 @@ export const useConfig = create<Store>()((set, get) => ({
           ? getField(mr, f.field).includes(f.includes)
           : f.matches
             ? getField(mr, f.field).trim() === f.matches.trim()
-            : false,
+            : f.excludes
+              ? !getField(mr, f.field).includes(f.excludes)
+              : false,
       );
     });
     return filtered;
