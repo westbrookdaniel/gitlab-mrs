@@ -45,6 +45,7 @@ import { refocusExchange } from "@urql/exchange-refocus";
 import { Filters } from "./Filters";
 import { useConfig } from "./store";
 import { MergeRequestNode, ProjectData } from "./types";
+import { Comments } from "./Comments";
 
 const client = new Client({
   url: "https://gitlab.com/api/graphql",
@@ -62,6 +63,7 @@ const getMergeRequestsQuery = (projectPath: string) => `
     project(fullPath: "${projectPath}") {
       mergeRequests(state: opened) {
         nodes {
+          iid
           id
           webUrl
           title
@@ -136,6 +138,7 @@ const UserConfigModal: React.FC<UserConfigModalProps> = ({
   onClose,
 }) => {
   const { config, setConfig } = useConfig();
+
   const [form, setForm] = useState({
     username: config?.currentUser?.username ?? "",
     projectId: config?.projectId ?? "",
@@ -312,7 +315,7 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
                   </Text>
                 )}
                 {mergeRequest.approvedBy.edges.length === 0 ? null : (
-                  <Flex>
+                  <Flex pr={2}>
                     {mergeRequest.approvedBy.edges.map((edge) => (
                       <Tooltip key={edge.node.id} label={edge.node.name}>
                         <Link href={edge.node.webUrl} isExternal mr={1}>
@@ -328,7 +331,7 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
                 )}
               </Flex>
             </Flex>
-            <HStack alignItems="baseline" spacing={4} mb={2}>
+            <HStack alignItems="baseline" spacing={2} mb={2}>
               <Flex justify="space-between" align="center">
                 <Text size="sm" fontSize="sm">
                   Created{" "}
@@ -345,6 +348,8 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
                         <Link href={edge.node.webUrl} isExternal mr={1}>
                           <Avatar
                             size="xs"
+                            mt={1}
+                            boxSize="18"
                             name={edge.node.name}
                             src={"https://gitlab.com" + edge.node.avatarUrl}
                           />
@@ -355,24 +360,7 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
                 </HStack>
               </Flex>
               <Flex justify="flex-start" align="center">
-                <Text mr={2} fontSize="sm">
-                  {mergeRequest.commenters.edges.length === 0
-                    ? ""
-                    : `${mergeRequest.userNotesCount} Comments (${mergeRequest.userDiscussionsCount} Threads) by`}
-                </Text>
-                <Flex>
-                  {mergeRequest.commenters.edges.map((edge) => (
-                    <Tooltip key={edge.node.id} label={edge.node.name}>
-                      <Link href={edge.node.webUrl} isExternal mr={1}>
-                        <Avatar
-                          size="xs"
-                          name={edge.node.name}
-                          src={"https://gitlab.com" + edge.node.avatarUrl}
-                        />
-                      </Link>
-                    </Tooltip>
-                  ))}
-                </Flex>
+                <Comments mergeRequest={mergeRequest} />
               </Flex>
             </HStack>
             <HStack>

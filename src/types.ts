@@ -1,4 +1,5 @@
 export interface MergeRequestNode {
+  iid: string;
   id: string;
   webUrl: string;
   title: string;
