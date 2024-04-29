@@ -48,7 +48,6 @@ import { useConfig } from "./store";
 import { MergeRequestNode, ProjectData } from "./types";
 import { Comments } from "./Comments";
 import { Dot, wrapAvatar } from "./util";
-import { GoDotFill } from "react-icons/go";
 
 const client = new Client({
   url: "https://gitlab.com/api/graphql",
