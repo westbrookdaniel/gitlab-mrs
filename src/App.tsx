@@ -32,6 +32,7 @@ import {
   useColorMode,
   extendTheme,
   Box,
+  Code,
 } from "@chakra-ui/react";
 import {
   FaAsterisk,
@@ -72,6 +73,8 @@ const getMergeRequestsQuery = (projectPath: string) => `
           conflicts
           createdAt
           updatedAt
+          sourceBranch
+          targetBranch
           approvalsLeft
           userNotesCount
           userDiscussionsCount
@@ -385,6 +388,12 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
                 <Flex justify="flex-start" align="center">
                   <Comments mergeRequest={mergeRequest} />
                 </Flex>
+
+                {!["main", "master"].includes(mergeRequest.targetBranch) ? (
+                  <Tag size="sm" ml={2}>
+                    {mergeRequest.targetBranch}
+                  </Tag>
+                ) : null}
               </HStack>
               <Text
                 display="block"

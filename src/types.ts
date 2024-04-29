@@ -6,6 +6,8 @@ export interface MergeRequestNode {
   conflicts: boolean;
   createdAt: string;
   updatedAt: string;
+  sourceBranch: string;
+  targetBranch: string;
   approvalsLeft: number;
   userNotesCount: number;
   userDiscussionsCount: number;
