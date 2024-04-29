@@ -32,7 +32,6 @@ import {
   useColorMode,
   extendTheme,
   Box,
-  Code,
 } from "@chakra-ui/react";
 import {
   FaAsterisk,
