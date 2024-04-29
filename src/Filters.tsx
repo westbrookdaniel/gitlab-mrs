@@ -1,24 +1,32 @@
 import {
   Button,
   HStack,
+  Text,
   Icon,
   IconButton,
   Input,
+  Menu,
+  MenuButton,
+  MenuDivider,
+  MenuGroup,
+  MenuItem,
+  MenuList,
   Select,
   Stack,
   Tag,
 } from "@chakra-ui/react";
 import { useConfig } from "./store";
 import { useState } from "react";
-import { MdClear } from "react-icons/md";
+import { MdClear, MdMoreVert } from "react-icons/md";
 
 const fields: Record<string, string> = {
   title: "Title",
-  "author.name": "Author",
+  "author.username": "Author Username",
 };
 
 export function Filters() {
-  const { filters, addFilter, removeFilter } = useConfig();
+  const { filters, addFilter, removeFilter, clearFilters, config } =
+    useConfig();
 
   const [text, setText] = useState("");
   const [field, setField] = useState("title");
@@ -70,6 +78,61 @@ export function Filters() {
         <Button whiteSpace="nowrap" minW="120px" type="submit">
           Add Filter
         </Button>
+
+        <Menu>
+          <MenuButton
+            as={IconButton}
+            aria-label="Options"
+            icon={<MdMoreVert />}
+            fontSize="xl"
+            variant="outline"
+          />
+          <MenuList>
+            <MenuGroup>
+              <Text fontSize="sm" fontWeight="bold" px={3} pt={1} pb={2}>
+                Quick Filters
+              </Text>
+              <MenuItem
+                onClick={() => {
+                  addFilter({
+                    id: crypto.randomUUID(),
+                    field: "title",
+                    name: "Title",
+                    excludes: "Draft",
+                  });
+                }}
+              >
+                Non-Drafts
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  addFilter({
+                    id: crypto.randomUUID(),
+                    field: "title",
+                    name: "Title",
+                    includes: "Draft",
+                  });
+                }}
+              >
+                Drafts
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  addFilter({
+                    id: crypto.randomUUID(),
+                    field: "author.username",
+                    name: "Author Username",
+                    includes: config?.currentUser?.username,
+                  });
+                }}
+              >
+                Yours
+              </MenuItem>
+            </MenuGroup>
+            <MenuDivider />
+            <MenuItem onClick={clearFilters}>Clear Filters</MenuItem>
+          </MenuList>
+        </Menu>
       </HStack>
       {filters.length === 0 ? null : (
         <HStack mb={2}>

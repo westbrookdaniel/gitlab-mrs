@@ -19,6 +19,8 @@ import {
 import { useQuery } from "urql";
 import { MergeRequestNode } from "./types";
 import { useConfig } from "./store";
+import { wrapAvatar } from "./util";
+import { useState } from "react";
 
 interface Props {
   mergeRequest: MergeRequestNode;
@@ -88,14 +90,45 @@ const getMergeRequestsQuery = (projectPath: string, iid: string) => `
 
 export function Comments({ mergeRequest }: Props) {
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const isLight = useColorMode().colorMode === "light";
+  const [hasHovered, setHasHovered] = useState(false);
+
+  const config = useConfig((s) => s.config);
+
+  const [{ data, fetching }] = useQuery<CommentMergeRequestNode>({
+    query: getMergeRequestsQuery(config?.projectId ?? "", mergeRequest.iid),
+    pause: !config?.projectId || (!isOpen && !hasHovered),
+    requestPolicy: "cache-and-network",
+  });
+
+  const threads = data?.project?.mergeRequest.discussions.nodes;
+  const resolved = threads?.reduce(
+    (acc, t) => (t.resolvable && t.resolved ? acc + 1 : acc),
+    0,
+  );
+  const resolvable = threads?.reduce(
+    (acc, t) => (t.resolvable ? acc + 1 : acc),
+    0,
+  );
+
   return (
     <>
-      <Button size="sm" onClick={onOpen} variant="link">
+      <Button
+        size="sm"
+        onClick={onOpen}
+        opacity={fetching ? 0.7 : 1}
+        variant="link"
+        color={isLight ? "gray.600" : "gray.500"}
+        display="flex"
+        alignItems="baseline"
+        onMouseOver={() => setHasHovered(true)}
+      >
         <Text>
           {mergeRequest.commenters.edges.length === 0
             ? "Activity"
             : `${mergeRequest.userNotesCount} Comments by`}
         </Text>
+
         <HStack
           spacing={1}
           ml={mergeRequest.commenters.edges.length === 0 ? 0 : 1.5}
@@ -108,15 +141,27 @@ export function Comments({ mergeRequest }: Props) {
                   mt="0.5"
                   boxSize="18"
                   name={edge.node.name}
-                  src={"https://gitlab.com" + edge.node.avatarUrl}
+                  src={wrapAvatar(edge.node.avatarUrl)}
                 />
               </Link>
             </Tooltip>
           ))}
         </HStack>
+
+        {resolvable && resolvable > 0 ? (
+          <Tooltip label="Threads Resolved">
+            <Text
+              color={resolved === resolvable ? "green.600" : "red.700"}
+              ml={2}
+            >
+              {resolved}/{resolvable}
+            </Text>
+          </Tooltip>
+        ) : null}
       </Button>
       <CommentsPopover
-        mergeRequest={mergeRequest}
+        data={data}
+        fetching={fetching}
         isOpen={isOpen}
         onOpen={onOpen}
         onClose={onClose}
@@ -126,23 +171,19 @@ export function Comments({ mergeRequest }: Props) {
 }
 
 function CommentsPopover({
-  mergeRequest,
+  data,
+  fetching,
   isOpen,
   onOpen,
   onClose,
-}: Props & {
+}: {
+  data: CommentMergeRequestNode | undefined;
+  fetching: boolean;
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
 }) {
-  const config = useConfig((s) => s.config);
   const isLight = useColorMode().colorMode === "light";
-
-  const [{ data, fetching }] = useQuery<CommentMergeRequestNode>({
-    query: getMergeRequestsQuery(config?.projectId ?? "", mergeRequest.iid),
-    pause: !config?.projectId || !isOpen,
-    requestPolicy: "cache-and-network",
-  });
 
   const threads = data?.project?.mergeRequest.discussions.nodes;
 

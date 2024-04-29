@@ -31,6 +31,7 @@ import {
   IconButton,
   useColorMode,
   extendTheme,
+  Box,
 } from "@chakra-ui/react";
 import {
   FaAsterisk,
@@ -46,6 +47,8 @@ import { Filters } from "./Filters";
 import { useConfig } from "./store";
 import { MergeRequestNode, ProjectData } from "./types";
 import { Comments } from "./Comments";
+import { Dot, wrapAvatar } from "./util";
+import { GoDotFill } from "react-icons/go";
 
 const client = new Client({
   url: "https://gitlab.com/api/graphql",
@@ -260,20 +263,21 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
         {filteredMergeRequests.map((mergeRequest) => (
           <ListItem
             key={mergeRequest.id}
-            pt={1}
-            pb={5}
+            pt={0}
+            pb={3}
             borderBottom="1px solid"
             borderColor={isLight ? "gray.200" : "gray.700"}
             position="relative"
           >
             {mergeRequest.author.username === config?.currentUser?.username ? (
-              <Icon
-                as={FaAsterisk}
-                color={isLight ? "gray.400" : "gray.600"}
-                left={-8}
-                top={4}
-                position="absolute"
-              />
+              <Box left={-8} top={4} position="absolute">
+                <Tooltip label="Assigned To You" shouldWrapChildren>
+                  <Icon
+                    as={FaAsterisk}
+                    color={isLight ? "gray.400" : "gray.600"}
+                  />
+                </Tooltip>
+              </Box>
             ) : null}
 
             <Flex justify="space-between" align="center">
@@ -306,23 +310,23 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
                   />
                 </Flex>
                 {mergeRequest.approvalsLeft === 0 ? (
-                  <Tag mr={2} colorScheme="green" fontSize="sm">
+                  <Tag colorScheme="green" fontSize="sm">
                     Approved
                   </Tag>
                 ) : (
-                  <Text mr={2} fontSize="sm">
-                    {mergeRequest.approvalsLeft} Needed
-                  </Text>
+                  <Text fontSize="sm">{mergeRequest.approvalsLeft} Needed</Text>
                 )}
                 {mergeRequest.approvedBy.edges.length === 0 ? null : (
-                  <Flex pr={2}>
+                  <Flex ml={2}>
                     {mergeRequest.approvedBy.edges.map((edge) => (
                       <Tooltip key={edge.node.id} label={edge.node.name}>
                         <Link href={edge.node.webUrl} isExternal mr={1}>
                           <Avatar
                             size="xs"
+                            boxSize="18"
+                            mt="3px"
                             name={edge.node.name}
-                            src={"https://gitlab.com" + edge.node.avatarUrl}
+                            src={wrapAvatar(edge.node.avatarUrl)}
                           />
                         </Link>
                       </Tooltip>
@@ -331,38 +335,70 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
                 )}
               </Flex>
             </Flex>
-            <HStack alignItems="baseline" spacing={2} mb={2}>
-              <Flex justify="space-between" align="center">
-                <Text size="sm" fontSize="sm">
-                  Created{" "}
-                  {formatDistance(parseISO(mergeRequest.createdAt), new Date())}{" "}
-                  by{" "}
-                  <Link href={mergeRequest.author.webUrl} isExternal>
-                    {mergeRequest.author.name}
-                  </Link>
-                </Text>
-                <HStack ml={2}>
-                  <Flex>
-                    {mergeRequest.assignees.edges.map((edge) => (
-                      <Tooltip key={edge.node.id} label={edge.node.name}>
-                        <Link href={edge.node.webUrl} isExternal mr={1}>
-                          <Avatar
-                            size="xs"
-                            mt={1}
-                            boxSize="18"
-                            name={edge.node.name}
-                            src={"https://gitlab.com" + edge.node.avatarUrl}
-                          />
-                        </Link>
-                      </Tooltip>
-                    ))}
-                  </Flex>
-                </HStack>
-              </Flex>
-              <Flex justify="flex-start" align="center">
-                <Comments mergeRequest={mergeRequest} />
-              </Flex>
-            </HStack>
+
+            <Flex justifyContent="space-between">
+              <HStack alignItems="baseline" spacing={2} mb={2}>
+                <Flex justify="space-between" align="center">
+                  <Text
+                    size="sm"
+                    fontSize="sm"
+                    color={isLight ? "gray.600" : "gray.500"}
+                  >
+                    created{" "}
+                    {formatDistance(
+                      parseISO(mergeRequest.createdAt),
+                      new Date(),
+                      { addSuffix: true },
+                    )}{" "}
+                    by{" "}
+                    <Link href={mergeRequest.author.webUrl} isExternal>
+                      {mergeRequest.author.name}
+                    </Link>
+                  </Text>
+
+                  <HStack
+                    ml={mergeRequest.assignees.edges.length === 0 ? 0 : 2}
+                  >
+                    <Tooltip label="Assigned To">
+                      <Flex>
+                        {mergeRequest.assignees.edges.map((edge, i) => (
+                          <Link
+                            key={edge.node.id}
+                            href={edge.node.webUrl}
+                            isExternal
+                            ml={i === 0 ? 0 : 1}
+                          >
+                            <Avatar
+                              size="xs"
+                              mt={1}
+                              boxSize="18"
+                              name={edge.node.name}
+                              src={wrapAvatar(edge.node.avatarUrl)}
+                            />
+                          </Link>
+                        ))}
+                      </Flex>
+                    </Tooltip>
+                  </HStack>
+
+                  <Dot />
+                </Flex>
+                <Flex justify="flex-start" align="center">
+                  <Comments mergeRequest={mergeRequest} />
+                </Flex>
+              </HStack>
+              <Text
+                display="block"
+                size="sm"
+                fontSize="sm"
+                color={isLight ? "gray.600" : "gray.500"}
+              >
+                updated{" "}
+                {formatDistance(parseISO(mergeRequest.updatedAt), new Date(), {
+                  addSuffix: true,
+                })}
+              </Text>
+            </Flex>
             <HStack>
               {mergeRequest.labels.edges.map((edge) => (
                 <Tag
@@ -432,7 +468,11 @@ const App = () => {
           cursor="pointer"
           size="sm"
           onClick={openModal}
-          src={config?.currentUser?.avatarUrl}
+          src={
+            config?.currentUser?.avatarUrl
+              ? wrapAvatar(config?.currentUser?.avatarUrl)
+              : undefined
+          }
         />
       </Flex>
       <UserConfigModal
