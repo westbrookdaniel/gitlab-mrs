@@ -11,12 +11,12 @@ import {
   MenuGroup,
   MenuItem,
   MenuList,
-  Select,
   Stack,
   Tag,
+  Select,
 } from "@chakra-ui/react";
-import { useConfig } from "./store";
-import { useState } from "react";
+import { Filter, useConfig } from "./store";
+import { useEffect, useState } from "react";
 import { MdClear, MdMoreVert } from "react-icons/md";
 
 const fields: Record<string, string> = {
@@ -28,9 +28,30 @@ export function Filters() {
   const { filters, addFilter, removeFilter, clearFilters, config } =
     useConfig();
 
-  const [text, setText] = useState("");
-  const [field, setField] = useState("title");
-  const [type, setType] = useState("includes");
+  const [current, setCurrent] = useState<Filter | null>(
+    filters.find((f) => f.id === "search") ?? null,
+  );
+
+  const [field, setField] = useState<string>(current?.data?.field ?? "title");
+  const [text, setText] = useState<string>(current?.data?.text ?? "");
+
+  useEffect(() => {
+    setCurrent({
+      id: "search",
+      label: "Search",
+      fn: `(mr) => mr.${field}.toLowerCase().includes("${text}".toLowerCase())`,
+      data: { text, field },
+    });
+  }, [field, text]);
+
+  useEffect(() => {
+    removeFilter("search");
+    if (!current) return;
+    console.log(current);
+    addFilter(current);
+  }, [addFilter, removeFilter, current]);
+
+  const displayFilters = filters.filter((f) => f.id !== "search");
 
   return (
     <Stack mb={2}>
@@ -39,13 +60,12 @@ export function Filters() {
         as="form"
         onSubmit={(e) => {
           e.preventDefault();
-          if (!text.trim() || !field || !type) return;
-          console.log({ text, field, type });
+          if (!text.trim() || !current) return;
+          console.log(current);
           addFilter({
+            ...current,
             id: crypto.randomUUID(),
-            name: fields[field] ?? "Unknown",
-            field,
-            [type]: text,
+            label: `${fields[field]} includes ${text}`,
           });
           setText("");
         }}
@@ -60,15 +80,6 @@ export function Filters() {
               {name}
             </option>
           ))}
-        </Select>
-        <Select
-          maxW="150px"
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-        >
-          <option value="includes">Includes</option>
-          <option value="matches">Matches</option>
-          <option value="excludes">Excludes</option>
         </Select>
         <Input
           placeholder="Filter..."
@@ -96,9 +107,8 @@ export function Filters() {
                 onClick={() => {
                   addFilter({
                     id: crypto.randomUUID(),
-                    field: "title",
-                    name: "Title",
-                    excludes: "Draft",
+                    label: "Non-Draft",
+                    fn: '(mr) => !mr.title.toLowerCase().includes("draft")',
                   });
                 }}
               >
@@ -108,9 +118,8 @@ export function Filters() {
                 onClick={() => {
                   addFilter({
                     id: crypto.randomUUID(),
-                    field: "title",
-                    name: "Title",
-                    includes: "Draft",
+                    label: "Draft",
+                    fn: '(mr) => mr.title.toLowerCase().includes("draft")',
                   });
                 }}
               >
@@ -120,9 +129,8 @@ export function Filters() {
                 onClick={() => {
                   addFilter({
                     id: crypto.randomUUID(),
-                    field: "author.username",
-                    name: "Author Username",
-                    includes: config?.currentUser?.username,
+                    label: "Yours",
+                    fn: `(mr) => mr.author.username === "${config?.currentUser?.username ?? ""}"`,
                   });
                 }}
               >
@@ -134,13 +142,11 @@ export function Filters() {
           </MenuList>
         </Menu>
       </HStack>
-      {filters.length === 0 ? null : (
+      {displayFilters.length === 0 ? null : (
         <HStack mb={2}>
-          {filters.map((f) => (
+          {displayFilters.map((f) => (
             <Tag key={f.id} pr={0}>
-              {f.name}{" "}
-              {f.includes ? "includes" : f.matches ? "matches" : "excludes"}{" "}
-              {f.includes ?? f.matches ?? f.excludes}
+              {f.label}
               <IconButton
                 onClick={() => removeFilter(f.id)}
                 icon={<Icon as={MdClear} />}
