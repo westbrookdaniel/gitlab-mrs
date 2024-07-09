@@ -260,12 +260,12 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
     <>
       <Filters />
 
-      <List spacing={2}>
+      <List spacing={3}>
         {filteredMergeRequests.map((mergeRequest) => (
           <ListItem
             key={mergeRequest.id}
             pt={0}
-            pb={3}
+            pb={4}
             borderBottom="1px solid"
             borderColor={isLight ? "gray.200" : "gray.700"}
             position="relative"
@@ -410,11 +410,25 @@ const MergeRequestList: React.FC<MergeRequestListProps> = ({
               {mergeRequest.labels.edges.map((edge) => (
                 <Tag
                   key={edge.node.id}
-                  bg={tinycolor(edge.node.color)
-                    .setAlpha(isLight ? 0.3 : 0.4)
-                    .lighten(isLight ? 0 : 50)
-                    .toRgbString()}
-                  color={tinycolor(edge.node.color).darken(80).toRgbString()}
+                  bg={
+                    isLight
+                      ? tinycolor(edge.node.color).setAlpha(0.3).toRgbString()
+                      : tinycolor(edge.node.color)
+                          .setAlpha(0.3)
+                          .desaturate(80)
+                          .toRgbString()
+                  }
+                  color={
+                    isLight
+                      ? tinycolor(edge.node.color)
+                          .saturate(80)
+                          .darken(30)
+                          .toRgbString()
+                      : tinycolor(edge.node.color)
+                          .desaturate(80)
+                          .lighten(40)
+                          .toRgbString()
+                  }
                   size="sm"
                 >
                   {edge.node.title}
@@ -522,7 +536,19 @@ const theme = extendTheme({
   semanticTokens: {
     colors: {
       "chakra-body-bg": {
-        _dark: "gray.900",
+        _dark: "gray.800",
+      },
+      gray: {
+        "50": "#fafafa",
+        "100": "#f1f1f1",
+        "200": "#e7e7e7",
+        "300": "#d4d4d4",
+        "400": "#adadad",
+        "500": "#7f7f7f",
+        "600": "#545454",
+        "700": "#373737",
+        "800": "#202020",
+        "900": "#191919",
       },
     },
   },
