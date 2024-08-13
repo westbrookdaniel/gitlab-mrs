@@ -20,6 +20,7 @@ import { useEffect, useState } from "react";
 import { MdClear, MdMoreVert } from "react-icons/md";
 
 const fields: Record<string, string> = {
+  fuzzy: "Fuzzy",
   title: "Title",
   "author.username": "Author Username",
 };
@@ -32,14 +33,24 @@ export function Filters() {
     filters.find((f) => f.id === "search") ?? null,
   );
 
-  const [field, setField] = useState<string>(current?.data?.field ?? "title");
+  const [field, setField] = useState<string>(current?.data?.field ?? "fuzzy");
   const [text, setText] = useState<string>(current?.data?.text ?? "");
 
   useEffect(() => {
     setCurrent({
       id: "search",
       label: "Search",
-      fn: `(mr) => mr.${field}.toLowerCase().includes("${text}".toLowerCase())`,
+      fn:
+        field === "fuzzy"
+          ? `(mr) => {
+            let str = '';
+            ${Object.keys(fields)
+              .filter((f) => f !== "fuzzy")
+              .map((k) => `str += mr.${k}.toLowerCase()`)
+              .join(";\n")}
+            return str.includes("${text}".toLowerCase())
+          }`
+          : `(mr) => mr.${field}.toLowerCase().includes("${text}".toLowerCase())`,
       data: { text, field },
     });
   }, [field, text]);
@@ -65,11 +76,20 @@ export function Filters() {
           addFilter({
             ...current,
             id: crypto.randomUUID(),
-            label: `${fields[field]} includes ${text}`,
+            label:
+              field === "fuzzy"
+                ? `Includes ${text}`
+                : `${fields[field]} includes ${text}`,
           });
           setText("");
         }}
       >
+        <Input
+          placeholder="Filter..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+
         <Select
           maxW="200px"
           value={field}
@@ -81,11 +101,7 @@ export function Filters() {
             </option>
           ))}
         </Select>
-        <Input
-          placeholder="Filter..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
+
         <Button whiteSpace="nowrap" minW="120px" type="submit">
           Add Filter
         </Button>

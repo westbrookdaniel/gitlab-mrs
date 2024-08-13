@@ -45,7 +45,13 @@ export const useConfig = create<Store>()(
       applyFilters: (mrs: MergeRequestNode[]) => {
         let filtered = mrs;
         get().filters.forEach((f) => {
-          filtered = filtered.filter(eval(f.fn));
+          try {
+            filtered = filtered.filter(eval(f.fn));
+          } catch (err) {
+            console.error(err);
+            get().removeFilter(f.id);
+            console.log("Removed errored filter");
+          }
         });
         return filtered;
       },
